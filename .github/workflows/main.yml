@@ -1,0 +1,22 @@
+name: Daily Reservation Check
+on:
+  schedule:
+    - cron: '*/30 * * * *' # 30分おきに実行（時間はUTCなので注意）
+  workflow_dispatch: # 手動実行ボタンも作る
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+      - name: Install dependencies
+        run: |
+          pip install playwright
+          playwright install chromium
+          playwright install-deps
+      - name: Run script
+        run: python your_script_name.py # 自分のファイル名に変える
