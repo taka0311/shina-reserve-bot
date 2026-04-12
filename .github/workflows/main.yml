@@ -1,7 +1,7 @@
 name: Daily Reservation Check
 on:
   schedule:
-    - cron: '*/30 * * * *' # 30分おきに実行（時間はUTCなので注意）
+    - cron: '*/3000 * * * *' # 30分おきに実行（時間はUTCなので注意）
   workflow_dispatch: # 手動実行ボタンも作る
 
 jobs:
