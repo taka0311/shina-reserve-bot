@@ -1,22 +1,66 @@
-name: Daily Reservation Check
+name: Tennis Reservation Bot
+
 on:
   schedule:
-    - cron: '*/3000 * * * *' # 30分おきに実行（時間はUTCなので注意）
-  workflow_dispatch: # 手動実行ボタンも作る
+    # 日本時間 06:00〜23:40 まで「20分おき」に実行 (分: 0, 20, 40)
+    # UTC (世界標準時) では 21:00〜14:40 になります (JSTマイナス9時間)
+    - cron: '0,20,40 21,22,23,0,1,2,3,4,5,6,7,8,9,10,11,12,13,14 * * *'
+  workflow_dispatch: # 手動で実行できるボタン
 
 jobs:
-  build:
+  run-bot:
     runs-on: ubuntu-latest
+    # 【安全装置】万が一サイトが固まっても、5分で強制終了して無料枠の消滅を防ぐ
+    timeout-minutes: 5 
+
     steps:
-      - uses: actions/checkout@v3
-      - name: Set up Python
-        uses: actions/setup-python@v4
-        with:
-          python-version: '3.10'
-      - name: Install dependencies
-        run: |
-          pip install playwright
-          playwright install chromium
-          playwright install-deps
-      - name: Run script
-        run: python your_script_name.py # 自分のファイル名に変える
+    - name: コードの取得
+      uses: actions/checkout@v4
+
+    - name: Pythonのセットアップ (pipインストールを高速化)
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.12'
+        cache: 'pip'
+
+    - name: 必要なライブラリのインストール
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+
+    - name: Playwrightブラウザのキャッシュ (ダウンロード時間を節約)
+      uses: actions/cache@v4
+      id: playwright-cache
+      with:
+        path: ~/.cache/ms-playwright
+        key: ${{ runner.os }}-playwright-${{ hashFiles('requirements.txt') }}
+
+    - name: Playwrightブラウザのインストール (キャッシュがない初回のみ)
+      if: steps.playwright-cache.outputs.cache-hit != 'true'
+      run: playwright install --with-deps chromium
+
+    - name: PlaywrightのOS依存パッケージのみインストール (2回目以降)
+      if: steps.playwright-cache.outputs.cache-hit == 'true'
+      run: playwright install-deps chromium
+
+    - name: 前回の実行結果を復元 (差分検知用)
+      uses: actions/cache@v4
+      with:
+        path: last_result.txt
+        # 今回の実行IDで新しく保存するため、復元時は「最新の bot-state-」を探す
+        key: bot-state-${{ github.run_id }}
+        restore-keys: |
+          bot-state-
+
+    - name: メインスクリプトの実行
+      env:
+        GMAIL_USER: ${{ secrets.GMAIL_USER }}
+        GMAIL_PASS: ${{ secrets.GMAIL_PASS }}
+      run: python main.py
+
+    - name: 今回の結果を次回の比較用に保存
+      uses: actions/cache/save@v4
+      if: always() # 途中でエラーが起きても必ず保存する
+      with:
+        path: last_result.txt
+        key: bot-state-${{ github.run_id }}
