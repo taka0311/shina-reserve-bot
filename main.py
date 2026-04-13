@@ -29,7 +29,7 @@ def extract_valid_slots(raw_text):
             hour_match = re.search(r"(\d+)時", end_time_part)
             if hour_match:
                 end_hour = int(hour_match.group(1)) 
-                is_weekend = any(day in current_date for day in ["金曜", "日曜", "祝"])
+                is_weekend = any(day in current_date for day in ["月曜", "日曜", "祝"])
                 if is_weekend or (not is_weekend and end_hour > 17):
                     clean_facility = current_facility.replace('\t', ' ')
                     slots.append(f"{current_date} | {clean_facility} | {line}")
