@@ -28,20 +28,16 @@ jobs:
         python -m pip install --upgrade pip
         pip install -r requirements.txt
 
-    - name: Playwrightブラウザのキャッシュ (ダウンロード時間を節約)
+    - name: Playwrightブラウザのキャッシュ
       uses: actions/cache@v4
-      id: playwright-cache
       with:
         path: ~/.cache/ms-playwright
-        key: ${{ runner.os }}-playwright-${{ hashFiles('requirements.txt') }}
-
-    - name: Playwrightブラウザのインストール (キャッシュがない初回のみ)
-      if: steps.playwright-cache.outputs.cache-hit != 'true'
+        key: ${{ runner.os }}-playwright-v1
+        restore-keys: |
+          ${{ runner.os }}-playwright-
+    
+    - name: Playwrightブラウザのインストール
       run: playwright install --with-deps chromium
-
-    - name: PlaywrightのOS依存パッケージのみインストール (2回目以降)
-      if: steps.playwright-cache.outputs.cache-hit == 'true'
-      run: playwright install-deps chromium
 
     - name: 前回の実行結果を復元 (差分検知用)
       uses: actions/cache@v4
